@@ -1,9 +1,16 @@
-const { Client, LocalAuth } = require("whatsapp-web.js")
+const { Client, LocalAuth, MessageMedia } = require("whatsapp-web.js")
+const fs = require('fs');
+const Anime_Images = require('anime-images-api')
+const API = new Anime_Images()
+const https = require('https');
 const qrcode = require("qrcode-terminal")
 console.log("initializing")
 const client = new Client({
 	authStrategy: new LocalAuth(),
 	takeoverOnConflict: true,
+	puppeteer: {
+        executablePath: '/usr/bin/google-chrome-stable',
+    }
 })
 
 client.on("qr", (qr) => {
@@ -29,7 +36,7 @@ client.on("message_create", async (message) => {
 	let result = ""
 
 	// check if a participant of the group prompts the bot with "/everyone"
-	if (!(message.body === "/everyone")) return
+	if (message.body === "/everyone"){
 	// Get a list of members in the group chat
 	const participants = await chat.participants
 	let partic = {}
@@ -60,6 +67,60 @@ client.on("message_create", async (message) => {
 	// chat.sendMessage(result)
 
 	chat.clearState()
+}
+
+	if (message.body === '/quote') {
+		fetch('https://api.quotable.io/quotes/random')
+		.then((response) => response.json())
+		.then((quotes) => {
+			console.log(quotes)
+			const quote = quotes[0]
+			const author = quote.author
+			const content = quote.content
+			chat.sendMessage(`Quote: ${content} -${author}`)
+		})
+		.catch((error) => {
+			console.error(error)
+
+		})
+	}
+
+	if (message.body === '/anime-quote'){
+		fetch("https://animechan.xyz/api/random")
+          .then((response) => response.json())
+          .then((quote) => {
+			console.log(quote)
+			const quotec = quote.character
+			const quotecont = quote.quote
+			chat.sendMessage(`Anime Quote:
+${quotecont}	
+-${quotec}`)
+		  });
+	}
+
+	if (message.body === '/waifu') {
+		fetch('https://api.waifu.pics/sfw/waifu')
+			.then((response) => response.json())
+			.then(async (pic) => {
+				const url = await MessageMedia.fromUrl(pic.url);
+
+				chat.sendMessage(url, {
+					caption: 'meme',
+				})
+			});
+	}
+
+	if (message.body === '/hug'){
+		fetch('https://api.otakugifs.xyz/gif?reaction=hug&format=gif')
+		.then((response) => response.json())
+		.then(async (pic) => {
+			const url = await MessageMedia.fromUrl(pic.url)
+
+			chat.sendMessage(url)
+		})
+
+	}
 })
+	
 
 client.initialize()
