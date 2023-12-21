@@ -12,7 +12,9 @@
   "license": "ISC",
   "dependencies": {
     "anime-images-api": "^2.0.0",
+    "axios": "^1.6.2",
     "nekosapi": "^0.5.2",
+    "node-fetch": "^3.3.2",
     "nodemon": "^2.0.22",
     "puppeteer": "^21.6.1",
     "qrcode-terminal": "^0.12.0",
