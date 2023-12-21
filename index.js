@@ -102,16 +102,34 @@ ${quotecont}
 	}
 
 	if (message.body === '/waifu') {
-		axios.get('https://api.waifu.pics/sfw/waifu')
-			.then(async (pic) => {
-				console.log(pic)
-				const url = await MessageMedia.fromUrl(pic.data.url);
-
+		const maxRetries = 3;
+		let retries = 0;
+	
+		const fetchWaifu = async () => {
+			try {
+				const response = await axios.get('https://api.waifu.pics/sfw/waifu');
+				console.log('Response: ',response)
+				const url = await MessageMedia.fromUrl(response.data.url);
+	
 				chat.sendMessage(url, {
 					caption: 'meme',
-				})
-			});
+				});
+			} catch (error) {
+				console.error(error);
+	
+				if (retries < maxRetries) {
+					retries++;
+					console.log(`Retrying (${retries}/${maxRetries})...`);
+					await fetchWaifu();
+				} else {
+					chat.sendMessage('Error fetching waifu GIF.');
+				}
+			}
+		};
+	
+		fetchWaifu();
 	}
+	
 
 	if (message.body === '/hug') {
 		axios.get('https://api.otakugifs.xyz/gif?reaction=hug&format=gif')
@@ -161,60 +179,58 @@ ${quotecont}
 	}
 
 	if (message.body === '/cuddle') {
-		axios.get('https://api.waifu.pics/sfw/cuddle')
-			.then(async (pic) => {
-				console.log(pic);
-	
-				// Check if the received media is a GIF
-				if (pic.data.url.endsWith('.gif')) {
-					const gifBuffer = await axios.get(pic.data.url, { responseType: 'arraybuffer' });
-					const url = new MessageMedia('image/gif', gifBuffer.data.toString('base64'));
-					console.log(gifBuffer)
-	
-					chat.sendMessage(url, {
-						caption: 'meme',
-						sendVideoAsGif: true
-					});
-				} else {
-					// If it's not a GIF, handle it as an image
-					const url = await MessageMedia.fromUrl(pic.data.url);
-					console.log('Not a gif')
-					chat.sendMessage(url, {
-						caption: 'meme',
-					});
-				}
-			});
-	}
-	if (message.body === '/waifu-n'){
-		fetch('https://api.waifu.pics/nsfw/neko')
-		.then((response) => {
-			if (!response.ok) {
-			throw new Error(`HTTP error! Status: ${response.status}`);
-			}
-			return response.json();
-		})
-		.then(async (data) => {
-			const url = await MessageMedia.fromUrl(data.url);
-			chat.sendMessage(url, {
-			caption: 'NSFW'
-			});
-		})
-		.catch((error) => {
-			console.error('Error fetching NSFW neko:', error);
-		});
+        try {
+            const response = await axios.get('https://api.waifu.pics/sfw/cuddle');
+            if (response.data.url.endsWith('.gif')) {
+                const gifBuffer = await axios.get(response.data.url, { responseType: 'arraybuffer' });
+                const url = new MessageMedia('image/gif', gifBuffer.data.toString('base64'));
+                console.log(gifBuffer);
+                chat.sendMessage(url, {
+                    caption: 'meme',
+                    sendVideoAsGif: true,
+                });
+            } else {
+                const url = await MessageMedia.fromUrl(response.data.url);
+                console.log('Not a gif');
+                chat.sendMessage(url, {
+                    caption: 'meme',
+                });
+            }
+        } catch (error) {
+            console.error(error);
+            chat.sendMessage('Error fetching cuddle GIF.');
+        }
+    }
 
-	}
-	if (message.body === '/husbando'){
-		fetch(`https://nekos.best/api/v2/husbando`)
-			.then((response) => response.json())
-			.then(async (pic) => {
-				console.log(pic.results[0].url)
-				const url = await MessageMedia.fromUrl(pic.results[0].url)
-				chat.sendMessage(url, {
-					caption: '.'
-				})
-			})
-	}
+	if (message.body === '/waifu-n') {
+        try {
+            const response = await axios.get('https://api.waifu.pics/nsfw/neko');
+            const url = await MessageMedia.fromUrl(response.data.url);
+            chat.sendMessage(url, {
+                caption: 'NSFW',
+            });
+        } catch (error) {
+            console.error('Error fetching NSFW neko:', error);
+            chat.sendMessage('Error fetching NSFW neko GIF.');
+        }
+    }
+	if (message.body === '/husbando') {
+        try {
+            const response = await axios.get(`https://nekos.best/api/v2/husbando`);
+            if (response.data.results && response.data.results.length > 0) {
+                const url = await MessageMedia.fromUrl(response.data.results[0].url);
+                chat.sendMessage(url, {
+                    caption: '.',
+                });
+            } else {
+                console.error('No results found in the API response.');
+            }
+        } catch (error) {
+            console.error('Error fetching or processing husbando data:', error);
+            chat.sendMessage('Error fetching or processing husbando data.');
+        }
+    }
+	
 
 	if (message.body === '/anime-rec'){
 		const animes = []
@@ -237,17 +253,26 @@ ${quotecont}
 		})
 	}
 
-	if (message.body === '/anime-img'){
-		axios.get(`https://api.nekosapi.com/v3/images`)
-		.then(async (data) => {
-			const randomnum = getRandomNumber(1, 100)
-			console.log(data)
-			console.log(data.items[randomnum].image_url)
-			const url = await MessageMedia.fromUrl(data.items[randomnum].image_url)
-			chat.sendMessage(url, {
-				caption: '.',
+	if (message.body === '/anime-img') {
+		fetch(`https://api.nekosapi.com/v3/images`)
+			.then((response) => response.json())
+			.then(async (data) => {
+				const randomnum = getRandomNumber(1, 100); // Assuming getRandomNumber is defined
+	
+				// Check if randomnum is within the valid range
+				if (randomnum >= 0 && randomnum < data.items.length) {
+					console.log(data.items[randomnum].image_url);
+					const url = await MessageMedia.fromUrl(data.items[randomnum].image_url);
+					chat.sendMessage(url, {
+						caption: '.',
+					});
+				} else {
+					console.error('Invalid random number or data structure');
+				}
 			})
-		})
+			.catch((error) => {
+				console.error('Error fetching data:', error);
+			});
 	}
 
 	if (message.body === '/contact-name') {
